@@ -14,13 +14,9 @@
 #include <unistd.h>
 #include <string.h>
 
-char **change_args(char **args);
-
 #include "shell_commands.h"
 
 #define VERSION_NUMBER "0.1"
-#define MAX_ARGS 64
-#define MAX_COMMAND_LENGTH 4096
 
 void simpleshell(void);
 
@@ -45,27 +41,24 @@ void simpleshell(void){
 	
 	printf("Simple Shell. Version: %s. Thomas Young (c) 2019\n", VERSION_NUMBER);
 	printf("A Young Enterprise Application.\n");
-
-	char *command;
+	
+	/* This is unused, and thus shouldn't be declared */
+	//char *command;
 	char **args;
 
 	while(1){
 		
 		printf(">");
 		args = readline();
-		if(args == NULL){
-			continue;  
-		}
 		
-		if(args == NULL){
+		if(args[0] == NULL){
 			continue;
 		} 
 		else {
 			shell_process_line(args);
-		}
-
-		free(args);
+		}	
 	}
+	return;
 }
 
 /* Checks to see if the user specified a shell command, if so it is executed with the arguments being passed
@@ -83,11 +76,13 @@ int shell_process_line(char **args){
 			shell_wai();
 		} 
 		else if(strcmp(args[0], "run") == 0){
-			strcat(args[1], "./");
-			shell_run(args);
+			char path[64] = "./";
+			strcat(path, args[1]);
+			shell_run(args, path);
 		} 
 		else if(strcmp(args[0], "exit") == 0){
-			shell_exit();
+			printf("-------------------------------\n");	
+			exit(0);
 		}
 		else {
 			if(execute(args) == 0){
@@ -133,7 +128,7 @@ char **readline(void){
 	char *command;	
 
 	char c;
-	char buffer[MAX_COMMAND_LENGTH];
+	char buffer[1024];
 
 	int count = 0;
 
@@ -146,9 +141,9 @@ char **readline(void){
 			command = buffer; 
 			break;
 			
-		} else if(count > MAX_COMMAND_LENGTH - 1){
-			printf("Oh no! The shell can only take commands up to 4096 characters long!\n");
-			return 0;
+		} else if(count > 1023){
+			printf("Oh no! The shell can only take commands up to 1024 characters long!\n");
+			return NULL;
 		
 		} else {
 			buffer[count] = c;
@@ -160,12 +155,14 @@ char **readline(void){
 
 	char *argument = strtok(command, " ");
 
-	while(argument != NULL && count < MAX_ARGS - 1){
+	while(argument != NULL){
 		args[count] = argument;
 		argument = strtok(NULL, " "); 
 		count++;
 	}
 	args[count] = NULL;
+	
+	/* To avoid memory leaks, which here would be of a 64-byte size, free must be used for every call to 'malloc', 'calloc', or 'realloc' */
 
 	return args;
 }	
